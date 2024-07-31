@@ -8,9 +8,6 @@
              x:Class="ClientApp.Views.ChatView"
              x:DataType="viewModels:ChatViewModel">
     <DockPanel>
-        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
-            <TextBlock Text="{Binding ChatName}"/>
-        </StackPanel>
         <DockPanel DockPanel.Dock="Bottom">
             <Button DockPanel.Dock="Right" Command="{Binding SendMessageCommand}">Send</Button>
             <TextBox Text="{Binding DraftMessage}" />

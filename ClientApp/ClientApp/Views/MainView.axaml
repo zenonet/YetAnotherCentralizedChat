@@ -13,11 +13,23 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
-    <DockPanel Name="DockPanel">
+    <DockPanel>
         <views:LoginView Name="LoginView"/>
-        <StackPanel Name="MainLayout">
-            <TextBox Name="otherUserField"/>
-            <Button Click="ChatOpenButtonClicked">Open</Button>
-        </StackPanel>
+        <DockPanel Name="DockPanel">
+            <StackPanel DockPanel.Dock="Top" Name="MainLayout" IsVisible="False">
+                <TextBox Name="otherUserField"/>
+                <Button Click="ChatOpenButtonClicked">Open</Button>
+            </StackPanel>
+            <TabControl ItemsSource="{Binding Chats}">
+                <TabControl.DataTemplates>
+                    <DataTemplate DataType="vm:ChatViewModel">
+                        <TabItem Header="{Binding ChatName}">
+                            <views:ChatView DataContext="{Binding}" />
+                        </TabItem>
+                    </DataTemplate>
+                </TabControl.DataTemplates>
+            </TabControl>
+        </DockPanel>
     </DockPanel>
+    
 </UserControl>

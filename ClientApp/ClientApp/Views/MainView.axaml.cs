@@ -31,10 +31,12 @@ public partial class MainView : UserControl
                 chat.Messages.Add(msg);
             }
         };
+        ((MainViewModel)DataContext!).Chats.Add(chat);
+        /*
         this.DockPanel.Children.Add(new ChatView
         {
             DataContext = chat,
-        });
+        });*/
 
     }
 }
