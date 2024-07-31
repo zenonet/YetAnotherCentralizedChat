@@ -1,6 +1,8 @@
 using System.Buffers.Text;
 using System.Data.Common;
 using System.Security.Cryptography;
+using System.Text;
+using Api;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
@@ -26,7 +28,7 @@ if (app.Environment.IsDevelopment())
 }
 
 var crypto = new RSACryptoServiceProvider();
-crypto.ImportFromPem(File.ReadAllText("../../../privateKey.pem"));
+crypto.ImportFromPem(File.ReadAllText("privateKey.pem"));
 
 app.UseHttpsRedirection();
 
@@ -70,16 +72,16 @@ int Register([FromHeader] string username, [FromHeader] string password)
     return 200;
 }
 
-int SendMessage([FromHeader] string token, [FromHeader] string targetUser, [FromHeader] string text)
+async Task<IActionResult> SendMessage([FromHeader] string token, [FromHeader] string targetUser, [FromHeader] string text)
 {
     using var con = GetDbConnection();
 
     User? user = VerifyToken(token);
-    if (user == null) return 301;
+    if (user == null) return new UnauthorizedResult();
 
-    using var cmd = new NpgsqlCommand("INSERT INTO users.messages (sender, recipient, time, content) VALUES" +
-                                      " (" +
-                                      "(select id from users.users where name = $1)," +
+    using var cmd = new NpgsqlCommand("INSERT INTO users.messages (sender, recipient, time, content) VALUES " +
+                                      "(" +
+                                      "$1," +
                                       "(select id from users.users where name = $2)," +
                                       "$3, $4)", con);
     cmd.Parameters.Add(new() {Value = user.Name});
@@ -98,11 +100,11 @@ Message[] LoadMessages([FromHeader] string token)
     User? user = VerifyToken(token);
     if (user == null) return null!; // TODO
 
-    using var cmd = new NpgsqlCommand("SELECT t.time,t.content, sender.name, recipient.name FROM users.messages t " +
+    using var cmd = new NpgsqlCommand("SELECT t.time,t.content, t.recipient, t.sender, sender.name, recipient.name FROM users.messages t " +
                                       "JOIN users.users sender ON t.sender=sender.id " +
                                       "JOIN users.users recipient ON t.recipient=recipient.id " +
-                                      "WHERE recipient=(SELECT id FROM users.users WHERE name=$1)", con);
-    cmd.Parameters.Add(new() {Value = user.Name});
+                                      "WHERE recipient=$1", con);
+    cmd.Parameters.Add(new() {Value = user.Id});
 
     List<Message> messages = new();
     var reader = cmd.ExecuteReader();
@@ -114,6 +116,8 @@ Message[] LoadMessages([FromHeader] string token)
             Timestamp = (DateTime) reader["time"],
             SenderName = reader.GetString(2),
             RecipientName = reader.GetString(3),
+            RecipientId = (int) reader["recipient"],
+            SenderId = (int) reader["sender"],
         });
     }
 
@@ -132,11 +136,11 @@ Message[] LoadMessagesWithUser([FromHeader] string token, [FromHeader] string ot
         "JOIN users.users sender ON t.sender = sender.id " +
         "JOIN users.users recipient ON t.recipient = recipient.id " +
         "WHERE " +
-        "(recipient = (SELECT id FROM users.users WHERE name = $2) AND sender = (SELECT id FROM users.users WHERE name = $1)) " +
-        "OR (recipient = (SELECT id FROM users.users WHERE name = $1) AND sender = (SELECT id FROM users.users WHERE name = $2))",
+        "(recipient = (SELECT id FROM users.users WHERE name = $2) AND sender = $1 " +
+        "OR (recipient = $1 AND sender = (SELECT id FROM users.users WHERE name = $2))",
         con
     );
-    cmd.Parameters.Add(new() {Value = user.Name});
+    cmd.Parameters.Add(new() {Value = user.Id});
     cmd.Parameters.Add(new() {Value = othersUsername});
 
     List<Message> messages = new();
@@ -177,10 +181,9 @@ bool VerifyLogin(string username, string password, NpgsqlConnection con)
 
     return CryptographicOperations.FixedTimeEquals(hashBytes, savedHashWithoutSalt);
 }
-
 User? VerifyToken(string token)
 {
-    string unencryptedToken = Convert.ToBase64String(
+    string unencryptedToken = Encoding.UTF8.GetString(
         crypto.Decrypt(
             Convert.FromBase64String(token),
             RSAEncryptionPadding.Pkcs1
@@ -192,27 +195,47 @@ User? VerifyToken(string token)
     if (sections[0] != "iwouldnottrustmyencryption") return null;
 
     // Check if the token is expired
-    var expirationDate = DateTime.FromBinary(long.Parse(sections[2]));
+    var expirationDate = DateTime.FromBinary(long.Parse(sections[3]));
     if (expirationDate < DateTime.Now) return null;
     
     return new()
     {
         Name = sections[1],
+        Id = int.Parse(sections[2]),
     };
 }
 
 string? VerifyUserAndCreateToken(string username, string password)
 {
     using var con = GetDbConnection();
-    if (!VerifyLogin(username, password, con)) return null;
+    using var cmd = new NpgsqlCommand("SELECT password, id FROM users.users WHERE name = $1", con);
+    cmd.Parameters.Add(new() {Value = username});
+    
+    using NpgsqlDataReader reader = cmd.ExecuteReader();
+
+    if (!reader.Read()) return null;
+
+    int userId = reader.GetInt32(1);
+    
+    string savedPasswordHash = reader.GetString(0);
+    byte[] savedHashBytes = Convert.FromBase64String(savedPasswordHash);
+    byte[] salt = new byte[16];
+    Array.Copy(savedHashBytes, 0, salt, 0, 16);
+    var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 50_000, HashAlgorithmName.SHA256);
+    byte[] hashBytes = pbkdf2.GetBytes(20);
+
+    byte[] savedHashWithoutSalt = new byte[20];
+    Array.Copy(savedHashBytes, 16, savedHashWithoutSalt, 0, 20);
+
+    if (!CryptographicOperations.FixedTimeEquals(hashBytes, savedHashWithoutSalt))
+        return null;
 
     DateTime expirationDate = DateTime.Now.AddHours(4);
-    string unencryptedToken = $"iwouldnottrustmyencryption;{username};{expirationDate.ToBinary()}";
+    string unencryptedToken = $"iwouldnottrustmyencryption;{username};{userId};{expirationDate.ToBinary()}";
 
-    byte[] token = crypto.Encrypt(Convert.FromBase64String(unencryptedToken), RSAEncryptionPadding.Pkcs1);
+    byte[] token = crypto.Encrypt(Encoding.UTF8.GetBytes(unencryptedToken), RSAEncryptionPadding.Pkcs1);
     return Convert.ToBase64String(token);
 }
-
 
 NpgsqlConnection GetDbConnection()
 {
@@ -221,12 +244,14 @@ NpgsqlConnection GetDbConnection()
     return c;
 }
 
-class Message
+public class Message
 {
     public required string SenderName { get; set; }
     public required string RecipientName { get; set; }
     public required string Content { get; set; }
     public required DateTime Timestamp { get; set; }
+    public int RecipientId { get; set; }
+    public int SenderId { get; set; }
 }
 
 class User
