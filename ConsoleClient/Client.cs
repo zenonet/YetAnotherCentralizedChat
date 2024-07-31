@@ -48,6 +48,16 @@ public class Client(string ip)
         string content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<Message[]>(content, jsonSerializerOptions);
     }
+    
+    public async Task<bool> SendMessage(string recipientName, string text)
+    {
+        HttpRequestMessage message = new(HttpMethod.Post, "/sendMessage");
+        message.Headers.Add("token", token);
+        message.Headers.Add("targetUser", recipientName);
+        message.Headers.Add("text", text);
+        var response = await httpClient.SendAsync(message);
+        return response.IsSuccessStatusCode;
+    }
 
     public void StartLongPollingConnection(Action<Message> messageReceived, CancellationToken cancellationToken)
     {

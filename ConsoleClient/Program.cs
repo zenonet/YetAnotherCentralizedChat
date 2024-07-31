@@ -2,9 +2,9 @@
 using ConsoleClient;
 
 Console.WriteLine("Welcome to the official YAC Chat console client");
-Console.WriteLine("Please connect to a server");
-Console.Write("IP: ");
-string? ip = Console.ReadLine();
+//Console.WriteLine("Please connect to a server");
+//Console.Write("IP: ");
+//string? ip = Console.ReadLine();
 
 
 /*
@@ -14,7 +14,7 @@ if (ip == null || !Uri.CheckSchemeName(ip))
     return;
 }*/
 
-Client client = new(ip);
+Client client = new("http://localhost:5221");
 
 Console.WriteLine("Login");
 Console.Write("Username: ");
@@ -42,6 +42,7 @@ if (messages == null)
     return;
 }
 
+string inputField = "";
 Console.Clear();
 Console.WriteLine(name + "\n");
 foreach (Message m in messages)
@@ -53,10 +54,46 @@ client.StartLongPollingConnection(m =>
 {
     if (m.SenderName != name) return;
     
-    Console.WriteLine($"{m.SenderName}: {m.Content}");
+    AddLineToHistory($"{m.SenderName}: {m.Content}");
 }, CancellationToken.None);
 
 while (true)
 {
-    await Task.Delay(20);
+
+    inputField = Console.ReadLine()!;
+    Console.CursorTop--;
+    Console.CursorLeft = 0;
+    Console.Write(new string(' ', Console.WindowWidth));
+    Console.CursorTop--;
+    await client.SendMessage(name!, inputField);
+    AddLineToHistory($"{username}: {inputField}");
+    /*
+    ConsoleKeyInfo key = Console.ReadKey();
+    
+    if (key.Key == ConsoleKey.Backspace)
+        inputField = inputField[..^1];
+    else if (key.Key == ConsoleKey.Enter)
+    {
+        await client.SendMessage(name!, inputField);
+        AddLineToHistory($"{username}: {inputField}");
+        inputField = "";
+    }
+    else
+    {
+        inputField += key.KeyChar;
+    }*/
+
+
+    
+    //Console.Write(new string('\b', Console.CursorLeft));
+    //Console.Write("> " + inputField);
+}
+
+void AddLineToHistory(string line)
+{
+    Console.CursorLeft = 0;
+    Console.WriteLine();
+    Console.CursorTop--;
+    Console.WriteLine(line);
+    Console.Write("> " + inputField);
 }
