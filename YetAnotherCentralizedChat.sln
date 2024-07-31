@@ -4,6 +4,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api", "Api\Api.csproj", "{0
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateTokens", "GenerateTokens\GenerateTokens.csproj", "{E7433328-73BE-4829-ACE8-A4F47CE2631B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleClient", "ConsoleClient\ConsoleClient.csproj", "{B305E9F9-B7A3-4B40-A8EB-6C5BD809D509}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{BC59ED1B-AEC3-465D-9784-7D169B1DE3AE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,15 @@ Global
 		{E7433328-73BE-4829-ACE8-A4F47CE2631B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E7433328-73BE-4829-ACE8-A4F47CE2631B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E7433328-73BE-4829-ACE8-A4F47CE2631B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B305E9F9-B7A3-4B40-A8EB-6C5BD809D509}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B305E9F9-B7A3-4B40-A8EB-6C5BD809D509}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B305E9F9-B7A3-4B40-A8EB-6C5BD809D509}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B305E9F9-B7A3-4B40-A8EB-6C5BD809D509}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC59ED1B-AEC3-465D-9784-7D169B1DE3AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC59ED1B-AEC3-465D-9784-7D169B1DE3AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC59ED1B-AEC3-465D-9784-7D169B1DE3AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC59ED1B-AEC3-465D-9784-7D169B1DE3AE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
 EndGlobal

@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
 using Api;
+using Common;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
@@ -139,7 +140,7 @@ Message[] LoadMessagesWithUser([FromHeader] string token, [FromHeader] string ot
         "JOIN users.users recipient ON t.recipient = recipient.id " +
         "WHERE " +
         "(recipient = (SELECT id FROM users.users WHERE name = $2) AND sender = $1 " +
-        "OR (recipient = $1 AND sender = (SELECT id FROM users.users WHERE name = $2))",
+        "OR (recipient = $1 AND sender = (SELECT id FROM users.users WHERE name = $2)))",
         con
     );
     cmd.Parameters.Add(new() {Value = user.Id});
@@ -236,16 +237,6 @@ NpgsqlConnection GetDbConnection()
     NpgsqlConnection c = new(configuration.GetConnectionString("app"));
     c.Open();
     return c;
-}
-
-public class Message
-{
-    public required string SenderName { get; set; }
-    public required string RecipientName { get; set; }
-    public required string Content { get; set; }
-    public required DateTime Timestamp { get; set; }
-    public int RecipientId { get; set; }
-    public int SenderId { get; set; }
 }
 
 class User
