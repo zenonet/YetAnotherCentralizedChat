@@ -5,6 +5,7 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using ClientApp.ViewModels;
 using ClientApp.Views;
+using Common;
 using ConsoleClient;
 
 namespace ClientApp;
@@ -13,6 +14,7 @@ public partial class App : Application
 {
     public static Client? Client;
     public static Action? LoggedIn;
+    public static Action<Message>? MessageReceived;
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);

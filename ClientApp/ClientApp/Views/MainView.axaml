@@ -13,7 +13,11 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
-    <DockPanel>
+    <DockPanel Name="DockPanel">
         <views:LoginView Name="LoginView"/>
+        <StackPanel Name="MainLayout">
+            <TextBox Name="otherUserField"/>
+            <Button Click="ChatOpenButtonClicked">Open</Button>
+        </StackPanel>
     </DockPanel>
 </UserControl>

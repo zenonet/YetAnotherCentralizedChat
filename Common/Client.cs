@@ -17,12 +17,14 @@ public class Client(string ip)
     };
 
     private string? token;
+    public string Username { get; private set; }
 
     public async Task Register(string username, string password)
     {
         HttpRequestMessage message = new(HttpMethod.Post, "/register");
         message.Headers.Add("username", username);
         message.Headers.Add("password", password);
+        Username = username;
         await httpClient.SendAsync(message);
     }
     
@@ -35,6 +37,7 @@ public class Client(string ip)
         
         if (!response.IsSuccessStatusCode) return false;
         token = await response.Content.ReadAsStringAsync();
+        Username = username;
         return true;
     }
 
