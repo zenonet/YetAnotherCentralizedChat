@@ -1,5 +1,4 @@
-﻿
-using Common;
+﻿using Common;
 using ConsoleClient;
 
 Console.WriteLine("Welcome to the official YAC Chat console client");
@@ -24,7 +23,7 @@ Console.Write("Password: ");
 string password = Console.ReadLine()!;
 
 bool isLoggedIn = await client.Login(username, password);
-if(isLoggedIn)
+if (isLoggedIn)
     Console.WriteLine("You're now logged in!");
 else
 {
@@ -42,9 +41,22 @@ if (messages == null)
     Console.WriteLine($"Unable to load messages with {name}");
     return;
 }
+
 Console.Clear();
 Console.WriteLine(name + "\n");
 foreach (Message m in messages)
 {
     Console.WriteLine($"{m.SenderName}: {m.Content}");
+}
+
+client.StartLongPollingConnection(m =>
+{
+    if (m.SenderName != name) return;
+    
+    Console.WriteLine($"{m.SenderName}: {m.Content}");
+}, CancellationToken.None);
+
+while (true)
+{
+    await Task.Delay(20);
 }

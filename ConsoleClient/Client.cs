@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Net;
+using System.Text.Json;
 using Common;
 
 namespace ConsoleClient;
@@ -46,5 +47,23 @@ public class Client(string ip)
         if (!response.IsSuccessStatusCode) return null;
         string content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<Message[]>(content, jsonSerializerOptions);
+    }
+
+    public void StartLongPollingConnection(Action<Message> messageReceived, CancellationToken cancellationToken)
+    {
+        Task.Run(async () =>
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                HttpRequestMessage message = new(HttpMethod.Get, "/longPolling");
+                message.Headers.Add("token", token);
+                var response = await httpClient.SendAsync(message, cancellationToken);
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    string content = await response.Content.ReadAsStringAsync(cancellationToken);
+                    messageReceived.Invoke(JsonSerializer.Deserialize<Message>(content, jsonSerializerOptions)!);
+                }
+            }
+        }, cancellationToken);
     }
 }

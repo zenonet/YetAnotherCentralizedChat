@@ -1,10 +1,13 @@
 ﻿using System.Collections.Concurrent;
+using System.Xml.Linq;
+using Common;
 
 namespace Api;
 
 public class LongPolling
 {
     public static ConcurrentDictionary<int, CancellationTokenSource> Registrations = new();
+    public static ConcurrentDictionary<int, Message?> MessagesToDeliver = new();
 
     public static void Register(int userId, CancellationTokenSource cancellationTokenRegistration)
     {
@@ -27,11 +30,13 @@ public class LongPolling
         return false;
     }
 
-    public static void OnMessageReceived(int recipientId)
+    public static void OnMessageReceived(Message? message)
     {
-        if (Registrations.TryGetValue(recipientId, out CancellationTokenSource? cancellationTokenSource))
+        if (Registrations.TryGetValue(message.RecipientId, out CancellationTokenSource? cancellationTokenSource))
         {
+            MessagesToDeliver[message.RecipientId] = message;
             cancellationTokenSource.Cancel();
+            Registrations.Remove(message.RecipientId, out cancellationTokenSource);
         }
     }
 }

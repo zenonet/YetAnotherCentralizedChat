@@ -80,6 +80,7 @@ async Task<IResult> SendMessage([FromHeader] string token, [FromHeader] string t
 
     User? user = VerifyToken(token);
     if (user == null) return Results.Unauthorized();
+    DateTime time = DateTime.Now;
 
     using var cmd = new NpgsqlCommand("INSERT INTO users.messages (sender, recipient, time, content) VALUES " +
                                       "(" +
@@ -88,11 +89,19 @@ async Task<IResult> SendMessage([FromHeader] string token, [FromHeader] string t
                                       "$3, $4) RETURNING recipient", con);
     cmd.Parameters.Add(new() {Value = user.Id});
     cmd.Parameters.Add(new() {Value = targetUser});
-    cmd.Parameters.Add(new() {Value = DateTime.Now});
+    cmd.Parameters.Add(new() {Value = time});
     cmd.Parameters.Add(new() {Value = text});
     int recipientId = (int) cmd.ExecuteScalar()!;
 
-    LongPolling.OnMessageReceived(recipientId);
+    LongPolling.OnMessageReceived(new()
+    {
+        Content = text,
+        RecipientId = recipientId,
+        Timestamp = time,
+        SenderId = user.Id,
+        SenderName = user.Name,
+        RecipientName = targetUser,
+    });
     return Results.Created();
 }
 
@@ -173,7 +182,12 @@ async Task<IResult> LongPollForMessages([FromHeader] string token)
     if (user == null) return Results.Unauthorized();
 
     bool hasNewMessage = await LongPolling.Wait(user.Id);
-    return Results.Ok(hasNewMessage ? "newMessage" : "timeout");
+    if (hasNewMessage)
+    {
+        LongPolling.MessagesToDeliver.Remove(user.Id, out Message? msg);
+        return Results.Json(msg);
+    }
+    return Results.NoContent();
 }
 
 User? VerifyToken(string token)
