@@ -47,8 +47,9 @@ app.MapPost("/sendMessage", SendMessage)
 app.MapGet("/getAllMessages", LoadMessages);
 app.MapGet("/getAllMessagesWithUser", LoadMessagesWithUser);
 
-app.Run();
+app.MapGet("/longPolling", LongPollForMessages);
 
+app.Run();
 
 int Register([FromHeader] string username, [FromHeader] string password)
 {
@@ -72,31 +73,32 @@ int Register([FromHeader] string username, [FromHeader] string password)
     return 200;
 }
 
-async Task<IActionResult> SendMessage([FromHeader] string token, [FromHeader] string targetUser, [FromHeader] string text)
+async Task<IResult> SendMessage([FromHeader] string token, [FromHeader] string targetUser, [FromHeader] string text)
 {
     using var con = GetDbConnection();
 
     User? user = VerifyToken(token);
-    if (user == null) return new UnauthorizedResult();
+    if (user == null) return Results.Unauthorized();
 
     using var cmd = new NpgsqlCommand("INSERT INTO users.messages (sender, recipient, time, content) VALUES " +
                                       "(" +
                                       "$1," +
                                       "(select id from users.users where name = $2)," +
-                                      "$3, $4)", con);
-    cmd.Parameters.Add(new() {Value = user.Name});
+                                      "$3, $4) RETURNING recipient", con);
+    cmd.Parameters.Add(new() {Value = user.Id});
     cmd.Parameters.Add(new() {Value = targetUser});
     cmd.Parameters.Add(new() {Value = DateTime.Now});
     cmd.Parameters.Add(new() {Value = text});
-    cmd.ExecuteNonQuery();
+    int recipientId = (int) cmd.ExecuteScalar()!;
 
-    return 201;
+    LongPolling.OnMessageReceived(recipientId);
+    return Results.Created();
 }
 
 Message[] LoadMessages([FromHeader] string token)
 {
     using var con = GetDbConnection();
-    
+
     User? user = VerifyToken(token);
     if (user == null) return null!; // TODO
 
@@ -164,23 +166,15 @@ string Login([FromHeader] string username, [FromHeader] string password)
     return VerifyUserAndCreateToken(username, password) ?? "Unauthorized";
 }
 
-bool VerifyLogin(string username, string password, NpgsqlConnection con)
+async Task<IResult> LongPollForMessages([FromHeader] string token)
 {
-    using var cmd = new NpgsqlCommand("SELECT password FROM users.users WHERE name = $1", con);
-    cmd.Parameters.Add(new() {Value = username});
-    string savedPasswordHash = (string) cmd.ExecuteScalar()!;
+    User? user = VerifyToken(token);
+    if (user == null) return Results.Unauthorized();
 
-    byte[] savedHashBytes = Convert.FromBase64String(savedPasswordHash);
-    byte[] salt = new byte[16];
-    Array.Copy(savedHashBytes, 0, salt, 0, 16);
-    var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 50_000, HashAlgorithmName.SHA256);
-    byte[] hashBytes = pbkdf2.GetBytes(20);
-
-    byte[] savedHashWithoutSalt = new byte[20];
-    Array.Copy(savedHashBytes, 16, savedHashWithoutSalt, 0, 20);
-
-    return CryptographicOperations.FixedTimeEquals(hashBytes, savedHashWithoutSalt);
+    bool hasNewMessage = await LongPolling.Wait(user.Id);
+    return Results.Ok(hasNewMessage ? "newMessage" : "timeout");
 }
+
 User? VerifyToken(string token)
 {
     string unencryptedToken = Encoding.UTF8.GetString(
@@ -197,7 +191,7 @@ User? VerifyToken(string token)
     // Check if the token is expired
     var expirationDate = DateTime.FromBinary(long.Parse(sections[3]));
     if (expirationDate < DateTime.Now) return null;
-    
+
     return new()
     {
         Name = sections[1],
@@ -210,13 +204,13 @@ string? VerifyUserAndCreateToken(string username, string password)
     using var con = GetDbConnection();
     using var cmd = new NpgsqlCommand("SELECT password, id FROM users.users WHERE name = $1", con);
     cmd.Parameters.Add(new() {Value = username});
-    
+
     using NpgsqlDataReader reader = cmd.ExecuteReader();
 
     if (!reader.Read()) return null;
 
     int userId = reader.GetInt32(1);
-    
+
     string savedPasswordHash = reader.GetString(0);
     byte[] savedHashBytes = Convert.FromBase64String(savedPasswordHash);
     byte[] salt = new byte[16];
