@@ -24,7 +24,7 @@
             <clientApp:MessageToAlignmentConverter x:Key="MsgToAlignConv"/>
     </UserControl.Resources>
     <DockPanel>
-        <controls:ColorZone Mode="Accent" DockPanel.Dock="Top">
+        <controls:ColorZone Mode="Standard" DockPanel.Dock="Top">
             <StackPanel Orientation="Horizontal">
                 <Button Name="NavDrawerSwitch" Click="BackButtonReleased" Content="{avalonia:MaterialIconExt Kind=ArrowBack}"
                               Width="32" Height="32" Background="Transparent"/>
@@ -32,8 +32,8 @@
             </StackPanel>
         </controls:ColorZone>
         <DockPanel DockPanel.Dock="Bottom">
-            <Button IsDefault="True" DockPanel.Dock="Right" Command="{Binding SendMessageCommand}">Send</Button>
-            <TextBox Text="{Binding DraftMessage}" />
+            <Button IsDefault="True" DockPanel.Dock="Right" Command="{Binding SendMessageCommand}" Name="SendButton" Margin="10">Send</Button>
+            <TextBox Text="{Binding DraftMessage}" Margin="10"/>
         </DockPanel>
         <ScrollViewer>
             <ListBox ItemsSource="{Binding Messages}">

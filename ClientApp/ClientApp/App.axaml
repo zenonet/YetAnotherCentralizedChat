@@ -11,7 +11,7 @@
         <FluentTheme />
         -->
         <avalonia:MaterialIconStyles />
-        <themes:MaterialTheme BaseTheme="Dark" PrimaryColor="Purple" SecondaryColor="Lime" />
+        <themes:MaterialTheme BaseTheme="Dark" PrimaryColor="Orange" SecondaryColor="Orange" />
     </Application.Styles>
              
 </Application>

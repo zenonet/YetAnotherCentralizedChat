@@ -1,5 +1,4 @@
 ﻿using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using ClientApp.ViewModels;
 
@@ -10,6 +9,7 @@ public partial class ChatView : UserControl
     public ChatView()
     {
         InitializeComponent();
+        SendButton.Focus();
     }
 
     private void BackButtonReleased(object? sender, RoutedEventArgs eventArgs)

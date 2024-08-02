@@ -27,14 +27,14 @@ public class Client(string ip)
         Username = username;
         await httpClient.SendAsync(message);
     }
-    
+
     public async Task<bool> Login(string username, string password)
     {
         HttpRequestMessage message = new(HttpMethod.Post, "/login");
         message.Headers.Add("username", username);
         message.Headers.Add("password", password);
         var response = await httpClient.SendAsync(message);
-        
+
         if (!response.IsSuccessStatusCode) return false;
         token = await response.Content.ReadAsStringAsync();
         Username = username;
@@ -51,7 +51,7 @@ public class Client(string ip)
         string content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<Message[]>(content, jsonSerializerOptions);
     }
-    
+
     public async Task<bool> SendMessage(string recipientName, string text)
     {
         HttpRequestMessage message = new(HttpMethod.Post, "/sendMessage");
@@ -60,6 +60,18 @@ public class Client(string ip)
         message.Headers.Add("text", text);
         var response = await httpClient.SendAsync(message);
         return response.IsSuccessStatusCode;
+    }
+
+    public async Task<string[]?> GetConversationPartners()
+    {
+        HttpRequestMessage message = new(HttpMethod.Get, "/getConversationPartners");
+        message.Headers.Add("token", token);
+        var response = await httpClient.SendAsync(message);
+
+        if (!response.IsSuccessStatusCode) return null;
+
+        string content = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<string[]>(content, jsonSerializerOptions);
     }
 
     public void StartLongPollingConnection(Action<Message> messageReceived, CancellationToken cancellationToken)

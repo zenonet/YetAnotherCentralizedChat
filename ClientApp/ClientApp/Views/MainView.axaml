@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:ClientApp.ViewModels"
              xmlns:views="clr-namespace:ClientApp.Views"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ClientApp.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -16,10 +17,21 @@
 
     <Carousel SelectedIndex="{Binding CarouselPage}">
         <views:LoginView Name="LoginView" />
-        <StackPanel>
-            <TextBox Name="otherUserField" />
-            <Button Click="ChatOpenButtonClicked">Open</Button>
-        </StackPanel>
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top">
+                <Button Click="ChatOpenButtonClicked" DockPanel.Dock="Right">Open</Button>
+                <TextBox Name="otherUserField" />
+            </DockPanel>
+            <ItemsControl ItemsSource="{Binding Conversations}">
+                <ItemsControl.DataTemplates>
+                    <DataTemplate DataType="system:String">
+                            <Border PointerReleased="OnConversationClicked" Padding="15">
+                                <TextBlock Text="{Binding}" FontSize="15" />
+                            </Border>
+                    </DataTemplate>
+                </ItemsControl.DataTemplates>
+            </ItemsControl>
+        </DockPanel>
         <views:ChatView DataContext="{Binding OpenedChat}" />
     </Carousel>
 
