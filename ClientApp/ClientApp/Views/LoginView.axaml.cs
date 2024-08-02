@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Net.Http;
+using System.Runtime.InteropServices.JavaScript;
 using System.Threading;
-using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
@@ -17,27 +17,43 @@ public partial class LoginView : UserControl
     private async void LoginButtonClicked(object? sender, RoutedEventArgs e)
     {
         Connect();
-        bool success = await App.Client!.Login(Username.Text!, Password.Text!);
-        // TODO manage errors
-        if(success)
-            Next();
+        try
+        {
+            bool success = await App.Client!.Login(Username.Text!, Password.Text!);
+            // TODO manage errors
+            if (success)
+                Next();
+            else
+                ErrorMsg.Text = "An error occured while logging you in. Your credentials are probably invalid.";
+        }
+        catch (HttpRequestException)
+        {
+            ErrorMsg.Text = "Unable to reach servers.";
+        }
     }
 
     private async void RegisterButtonClicked(object? sender, RoutedEventArgs e)
     {
         Connect();
-        await App.Client!.Register(Username.Text!, Password.Text!);
-        bool success = await App.Client!.Login(Username.Text!, Password.Text!);
-        if(success)
-            Next();
+        try
+        {
+            bool success = await App.Client!.Register(Username.Text!, Password.Text!);
+            success &= await App.Client!.Login(Username.Text!, Password.Text!);
+
+            if (success)
+                Next();
+            else
+                ErrorMsg.Text = "An error occured. The username you selected is probably taken.";
+        }
+        catch (HttpRequestException)
+        {
+            ErrorMsg.Text = "Unable to reach servers.";
+        }
     }
 
     private void Next()
     {
-        App.Client!.StartLongPollingConnection(msg =>
-        {
-            App.MessageReceived?.Invoke(msg);
-        }, CancellationToken.None);
+        App.Client!.StartLongPollingConnection(msg => { App.MessageReceived?.Invoke(msg); }, CancellationToken.None);
         App.LoggedIn?.Invoke();
     }
 

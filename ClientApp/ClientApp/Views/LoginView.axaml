@@ -19,6 +19,7 @@
         <StackPanel Orientation="Horizontal">
             <Button Click="LoginButtonClicked" Content="Login" IsDefault="True" Margin="0, 0, 15, 0"/>
             <Button Click="RegisterButtonClicked" Content="Register"/>
+            <TextBlock Name="ErrorMsg" Foreground="Red" Margin="10"/>
         </StackPanel>
     </StackPanel>
 </UserControl>

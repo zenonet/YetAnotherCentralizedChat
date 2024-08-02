@@ -5,6 +5,7 @@
              xmlns:vm="clr-namespace:ClientApp.ViewModels"
              xmlns:views="clr-namespace:ClientApp.Views"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:assists="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ClientApp.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -18,14 +19,14 @@
     <Carousel SelectedIndex="{Binding CarouselPage}">
         <views:LoginView Name="LoginView" />
         <DockPanel>
-            <DockPanel DockPanel.Dock="Top">
+            <DockPanel DockPanel.Dock="Top" Margin="5">
                 <Button Click="ChatOpenButtonClicked" DockPanel.Dock="Right">Open</Button>
-                <TextBox Name="otherUserField" />
+                <TextBox Name="otherUserField" assists:TextFieldAssist.Label="Write to other contact" />
             </DockPanel>
             <ItemsControl ItemsSource="{Binding Conversations}">
                 <ItemsControl.DataTemplates>
                     <DataTemplate DataType="system:String">
-                            <Border PointerReleased="OnConversationClicked" Padding="15">
+                            <Border PointerReleased="OnConversationClicked" Padding="15" BorderThickness="1" BorderBrush="Black">
                                 <TextBlock Text="{Binding}" FontSize="15" />
                             </Border>
                     </DataTemplate>

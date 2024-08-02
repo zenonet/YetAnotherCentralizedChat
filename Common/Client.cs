@@ -19,18 +19,19 @@ public class Client(string ip)
     private string? token;
     public string Username { get; private set; }
 
-    public async Task Register(string username, string password)
+    public async Task<bool> Register(string username, string password)
     {
-        HttpRequestMessage message = new(HttpMethod.Post, "/register");
+        HttpRequestMessage message = new(HttpMethod.Post, "register");
         message.Headers.Add("username", username);
         message.Headers.Add("password", password);
         Username = username;
-        await httpClient.SendAsync(message);
+        HttpResponseMessage response = await httpClient.SendAsync(message);
+        return response.IsSuccessStatusCode;
     }
 
     public async Task<bool> Login(string username, string password)
     {
-        HttpRequestMessage message = new(HttpMethod.Post, "/login");
+        HttpRequestMessage message = new(HttpMethod.Post, "login");
         message.Headers.Add("username", username);
         message.Headers.Add("password", password);
         var response = await httpClient.SendAsync(message);
@@ -43,7 +44,7 @@ public class Client(string ip)
 
     public async Task<Message[]?> GetAllMessagesWithUser(string username)
     {
-        HttpRequestMessage message = new(HttpMethod.Get, "/getAllMessagesWithUser");
+        HttpRequestMessage message = new(HttpMethod.Get, "getAllMessagesWithUser");
         message.Headers.Add("token", token);
         message.Headers.Add("othersUsername", username);
         var response = await httpClient.SendAsync(message);
@@ -54,7 +55,7 @@ public class Client(string ip)
 
     public async Task<bool> SendMessage(string recipientName, string text)
     {
-        HttpRequestMessage message = new(HttpMethod.Post, "/sendMessage");
+        HttpRequestMessage message = new(HttpMethod.Post, "sendMessage");
         message.Headers.Add("token", token);
         message.Headers.Add("targetUser", recipientName);
         message.Headers.Add("text", text);
@@ -64,7 +65,7 @@ public class Client(string ip)
 
     public async Task<string[]?> GetConversationPartners()
     {
-        HttpRequestMessage message = new(HttpMethod.Get, "/getConversationPartners");
+        HttpRequestMessage message = new(HttpMethod.Get, "getConversationPartners");
         message.Headers.Add("token", token);
         var response = await httpClient.SendAsync(message);
 
@@ -80,7 +81,7 @@ public class Client(string ip)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                HttpRequestMessage message = new(HttpMethod.Get, "/longPolling");
+                HttpRequestMessage message = new(HttpMethod.Get, "longPolling");
                 message.Headers.Add("token", token);
                 var response = await httpClient.SendAsync(message, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.OK)

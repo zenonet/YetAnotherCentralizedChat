@@ -9,6 +9,17 @@ using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
+
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -28,6 +39,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors();
 var crypto = new RSACryptoServiceProvider();
 crypto.ImportFromPem(File.ReadAllText("privateKey.pem"));
 
@@ -39,21 +51,27 @@ app.MapPost("/register", Register)
 
 app.MapPost("/login", Login)
     .WithName("Login")
+    .Produces<TokenResult>()
     .WithOpenApi();
 
 app.MapPost("/sendMessage", SendMessage)
     .WithName("sendMessage")
     .WithOpenApi();
 
-app.MapGet("/getAllMessages", LoadMessages);
-app.MapGet("/getConversationPartners", GetConversationPartnerUsernames);
-app.MapGet("/getAllMessagesWithUser", LoadMessagesWithUser);
+app.MapGet("/getAllMessages", LoadMessages)
+    .Produces<Message[]>();
+app.MapGet("/getConversationPartners", GetConversationPartnerUsernames)
+    .Produces<string[]>();
+app.MapGet("/getAllMessagesWithUser", LoadMessagesWithUser)
+    .Produces<Message[]>();
 
-app.MapGet("/longPolling", LongPollForMessages);
+app.MapGet("/longPolling", LongPollForMessages)
+    .Produces<Message>();
 
 app.Run();
+return;
 
-int Register([FromHeader] string username, [FromHeader] string password)
+IResult Register([FromHeader] string username, [FromHeader] string password)
 {
     using var con = GetDbConnection();
 
@@ -66,16 +84,24 @@ int Register([FromHeader] string username, [FromHeader] string password)
     Array.Copy(salt, 0, hashBytes, 0, 16);
     Array.Copy(hash, 0, hashBytes, 16, 20);
     string passwordHash = Convert.ToBase64String(hashBytes);
-
+    
     using var cmd = new NpgsqlCommand("INSERT INTO users.users (name, password) VALUES ($1, $2) RETURNING id", con);
     cmd.Parameters.Add(new() {Value = username});
     cmd.Parameters.Add(new() {Value = passwordHash});
 
-    int id = (int) cmd.ExecuteScalar()!;
-    return 200;
+    try
+    {
+        int id = (int) cmd.ExecuteScalar()!;
+    }
+    catch (PostgresException)
+    {
+        return Results.Conflict();
+    }
+
+    return Results.Created();
 }
 
-async Task<IResult> SendMessage([FromHeader] string token, [FromHeader] string targetUser, [FromHeader] string text)
+IResult SendMessage([FromHeader] string token, [FromHeader] string targetUser, [FromHeader] string text)
 {
     using var con = GetDbConnection();
 
@@ -106,12 +132,12 @@ async Task<IResult> SendMessage([FromHeader] string token, [FromHeader] string t
     return Results.Created();
 }
 
-Message[] LoadMessages([FromHeader] string token)
+IResult LoadMessages([FromHeader] string token)
 {
     using var con = GetDbConnection();
 
     User? user = VerifyToken(token);
-    if (user == null) return null!; // TODO
+    if (user == null) return Results.Unauthorized();
 
     using var cmd = new NpgsqlCommand("SELECT t.time,t.content, t.recipient, t.sender, sender.name, recipient.name FROM users.messages t " +
                                       "JOIN users.users sender ON t.sender=sender.id " +
@@ -134,14 +160,14 @@ Message[] LoadMessages([FromHeader] string token)
         });
     }
 
-    return messages.ToArray();
+    return Results.Ok(messages.ToArray());
 }
 
-Message[] LoadMessagesWithUser([FromHeader] string token, [FromHeader] string othersUsername)
+IResult LoadMessagesWithUser([FromHeader] string token, [FromHeader] string othersUsername)
 {
     using var con = GetDbConnection();
     User? user = VerifyToken(token);
-    if (user == null) return null!; // TODO
+    if (user == null) return Results.Unauthorized();
 
     using var cmd = new NpgsqlCommand(
         "SELECT t.time, t.content, sender.name, recipient.name " +
@@ -169,14 +195,14 @@ Message[] LoadMessagesWithUser([FromHeader] string token, [FromHeader] string ot
         });
     }
 
-    return messages.ToArray();
+    return Results.Ok(messages.ToArray());
 }
 
-string[] GetConversationPartnerUsernames([FromHeader] string token)
+IResult GetConversationPartnerUsernames([FromHeader] string token)
 {
     using var con = GetDbConnection();
     User? user = VerifyToken(token);
-    if (user == null) return null!; // TODO
+    if (user == null) return Results.Unauthorized();
 
     using var cmd = new NpgsqlCommand(
         "SELECT " +
@@ -211,12 +237,16 @@ string[] GetConversationPartnerUsernames([FromHeader] string token)
         conversationPartners.Add((string) reader["username"]);
     }
 
-    return conversationPartners.ToArray();
+    return Results.Ok(conversationPartners.ToArray());
 }
 
-string Login([FromHeader] string username, [FromHeader] string password)
+IResult Login([FromHeader] string username, [FromHeader] string password)
 {
-    return VerifyUserAndCreateToken(username, password) ?? "Unauthorized";
+    TokenResult token = VerifyUserAndCreateToken(username, password);
+    if(token != null)
+        return Results.Ok(token);
+    
+    return Results.Unauthorized();
 }
 
 async Task<IResult> LongPollForMessages([FromHeader] string token)
@@ -257,8 +287,9 @@ User? VerifyToken(string token)
     };
 }
 
-string? VerifyUserAndCreateToken(string username, string password)
+TokenResult? VerifyUserAndCreateToken(string username, string password)
 {
+    // Auth
     using var con = GetDbConnection();
     using var cmd = new NpgsqlCommand("SELECT password, id FROM users.users WHERE name = $1", con);
     cmd.Parameters.Add(new() {Value = username});
@@ -282,11 +313,18 @@ string? VerifyUserAndCreateToken(string username, string password)
     if (!CryptographicOperations.FixedTimeEquals(hashBytes, savedHashWithoutSalt))
         return null;
 
+    // Token creation
     DateTime expirationDate = DateTime.Now.AddHours(4);
-    string unencryptedToken = $"iwouldnottrustmyencryption;{username};{userId};{expirationDate.ToBinary()}";
+    
+    // Also add some randomness so that tokens aren't determined only by changing data, clients have as well (does that make sense?)
+    string unencryptedToken = $"iwouldnottrustmyencryption;{username};{userId};{expirationDate.ToBinary()};{Random.Shared.NextSingle()}";
 
     byte[] token = crypto.Encrypt(Encoding.UTF8.GetBytes(unencryptedToken), RSAEncryptionPadding.Pkcs1);
-    return Convert.ToBase64String(token);
+    return new()
+    {
+        Token = Convert.ToBase64String(token),
+        ExpirationDate = expirationDate,
+    };
 }
 
 NpgsqlConnection GetDbConnection()

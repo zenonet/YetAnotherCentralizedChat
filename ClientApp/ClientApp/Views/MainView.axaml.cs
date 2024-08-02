@@ -24,13 +24,6 @@ public partial class MainView : UserControl
     private async void ChatOpenButtonClicked(object? sender, RoutedEventArgs e)
     {
         await OpenChat(otherUserField.Text!);
-
-        /*
-        this.DockPanel.Children.Add(new ChatView
-        {
-            DataContext = chat,
-        });*/
-
     }
 
     private async Task<ChatViewModel> GetChatModelForUser(string name)

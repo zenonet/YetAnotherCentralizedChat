@@ -8,6 +8,7 @@
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:views="clr-namespace:ClientApp.Views"
              xmlns:clientApp="clr-namespace:ClientApp"
+             xmlns:assists="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ClientApp.Views.ChatView"
              x:DataType="viewModels:ChatViewModel">
@@ -33,7 +34,7 @@
         </controls:ColorZone>
         <DockPanel DockPanel.Dock="Bottom">
             <Button IsDefault="True" DockPanel.Dock="Right" Command="{Binding SendMessageCommand}" Name="SendButton" Margin="10">Send</Button>
-            <TextBox Text="{Binding DraftMessage}" Margin="10"/>
+            <TextBox Text="{Binding DraftMessage}" Margin="10" assists:TextFieldAssist.Label="New message"/>
         </DockPanel>
         <ScrollViewer>
             <ListBox ItemsSource="{Binding Messages}">

@@ -15,7 +15,7 @@
             <TextBlock Text="{Binding SenderName}" FontSize="8" Padding="5, 5, 0, 0" DockPanel.Dock="Left" />
             <TextBlock Text="{Binding Timestamp, StringFormat=hh:mm dd.MM.yyyy}" FontSize="8" Padding="5, 5, 0, 0" DockPanel.Dock="Right" />
         </DockPanel>
-        <Border Background="Orange" CornerRadius="8" VerticalAlignment="Top" Padding="8">
+        <Border Background="DarkCyan" CornerRadius="8" VerticalAlignment="Top" Padding="8">
             <TextBlock Text="{Binding Content}" TextWrapping="WrapWithOverflow"/>
         </Border>
     </StackPanel>
