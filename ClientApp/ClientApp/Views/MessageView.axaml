@@ -1,0 +1,22 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:common="clr-namespace:Common;assembly=Common"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="ClientApp.Views.MessageView"
+             x:DataType="common:Message">
+    <Design.DataContext>
+        <common:Message Content="Wanna meet up in a cozy café?" SenderName="Valery"></common:Message>
+    </Design.DataContext>
+    <StackPanel Orientation="Vertical">
+
+        <DockPanel>
+            <TextBlock Text="{Binding SenderName}" FontSize="8" Padding="5, 5, 0, 0" DockPanel.Dock="Left" />
+            <TextBlock Text="{Binding Timestamp, StringFormat=hh:mm dd.MM.yyyy}" FontSize="8" Padding="5, 5, 0, 0" DockPanel.Dock="Right" />
+        </DockPanel>
+        <Border Background="Purple" CornerRadius="8" VerticalAlignment="Top" Padding="8">
+            <TextBlock Text="{Binding Content}"/>
+        </Border>
+    </StackPanel>
+</UserControl>

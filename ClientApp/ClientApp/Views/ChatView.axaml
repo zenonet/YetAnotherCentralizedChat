@@ -6,9 +6,23 @@
              xmlns:common="clr-namespace:Common;assembly=Common"
              xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:views="clr-namespace:ClientApp.Views"
+             xmlns:clientApp="clr-namespace:ClientApp"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ClientApp.Views.ChatView"
              x:DataType="viewModels:ChatViewModel">
+    <Design.DataContext>
+        <viewModels:ChatViewModel DraftMessage="Feeling kinda empty right now..." ChatName="Karsten">
+            <viewModels:ChatViewModel.Messages>
+                <common:Message SenderName="Thomas" Content="Hi, how are you doing?"/>
+                <common:Message SenderName="Karsten" Content="I am fine, thanks" SenderId="1"/>
+                <common:Message SenderName="Karsten" Content="And you?" SenderId="1"/>
+            </viewModels:ChatViewModel.Messages>
+        </viewModels:ChatViewModel>
+    </Design.DataContext>
+    <UserControl.Resources>
+            <clientApp:MessageToAlignmentConverter x:Key="MsgToAlignConv"/>
+    </UserControl.Resources>
     <DockPanel>
         <controls:ColorZone Mode="Accent" DockPanel.Dock="Top">
             <StackPanel Orientation="Horizontal">
@@ -24,12 +38,8 @@
         <ScrollViewer>
             <ListBox ItemsSource="{Binding Messages}">
                 <ListBox.DataTemplates>
-                    <DataTemplate DataType="common:Message">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding SenderName}"></TextBlock>
-                            <TextBlock Text=":"></TextBlock>
-                            <TextBlock Text="{Binding Content}"></TextBlock>
-                        </StackPanel>
+                    <DataTemplate DataType="common:Message"> 
+                            <views:MessageView DataContext="{Binding}" HorizontalAlignment="{Binding Converter={StaticResource MsgToAlignConv}}"/>
                     </DataTemplate>
                 </ListBox.DataTemplates>
             </ListBox>
