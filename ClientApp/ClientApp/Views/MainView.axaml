@@ -7,29 +7,20 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ClientApp.Views.MainView"
              x:DataType="vm:MainViewModel">
-  <Design.DataContext>
-    <!-- This only sets the DataContext for the previewer in an IDE,
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
          to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-    <vm:MainViewModel />
-  </Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
 
-    <DockPanel>
-        <views:LoginView Name="LoginView"/>
-        <DockPanel Name="DockPanel">
-            <StackPanel DockPanel.Dock="Top" Name="MainLayout" IsVisible="False">
-                <TextBox Name="otherUserField"/>
-                <Button Click="ChatOpenButtonClicked">Open</Button>
-            </StackPanel>
-            <TabControl ItemsSource="{Binding Chats}">
-                <TabControl.DataTemplates>
-                    <DataTemplate DataType="vm:ChatViewModel">
-                        <TabItem Header="{Binding ChatName}">
-                            <views:ChatView DataContext="{Binding}" />
-                        </TabItem>
-                    </DataTemplate>
-                </TabControl.DataTemplates>
-            </TabControl>
-        </DockPanel>
-    </DockPanel>
-    
+
+    <Carousel SelectedIndex="{Binding CarouselPage}">
+        <views:LoginView Name="LoginView" />
+        <StackPanel>
+            <TextBox Name="otherUserField" />
+            <Button Click="ChatOpenButtonClicked">Open</Button>
+        </StackPanel>
+        <views:ChatView DataContext="{Binding OpenedChat}" />
+    </Carousel>
+
 </UserControl>

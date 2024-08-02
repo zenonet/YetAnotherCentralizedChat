@@ -4,12 +4,21 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:ClientApp.ViewModels"
              xmlns:common="clr-namespace:Common;assembly=Common"
+             xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="ClientApp.Views.ChatView"
              x:DataType="viewModels:ChatViewModel">
     <DockPanel>
+        <controls:ColorZone Mode="Accent" DockPanel.Dock="Top">
+            <StackPanel Orientation="Horizontal">
+                <Button Name="NavDrawerSwitch" Click="BackButtonReleased" Content="{avalonia:MaterialIconExt Kind=ArrowBack}"
+                              Width="32" Height="32" Background="Transparent"/>
+                <TextBlock Text="{Binding ChatName}" HorizontalAlignment="Center" Margin="10" />
+            </StackPanel>
+        </controls:ColorZone>
         <DockPanel DockPanel.Dock="Bottom">
-            <Button DockPanel.Dock="Right" Command="{Binding SendMessageCommand}">Send</Button>
+            <Button IsDefault="True" DockPanel.Dock="Right" Command="{Binding SendMessageCommand}">Send</Button>
             <TextBox Text="{Binding DraftMessage}" />
         </DockPanel>
         <ScrollViewer>

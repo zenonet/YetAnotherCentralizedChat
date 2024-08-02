@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,13 +11,16 @@ public partial class ChatViewModel : ViewModelBase
 {
     [ObservableProperty] private string chatName;
     [ObservableProperty] private ObservableCollection<Message> messages = new();
-
     
-    [ObservableProperty] private string draftMessage;
+    [ObservableProperty] private string draftMessage = "";
+
+    public Action? CloseChat { get; set; }
 
     [RelayCommand]
-    public async void SendMessage()
+    public async Task SendMessage()
     {
+        if (string.IsNullOrWhiteSpace(DraftMessage)) return;
+
         await App.Client!.SendMessage(ChatName, DraftMessage);
         Messages.Add(new()
         {
