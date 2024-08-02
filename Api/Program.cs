@@ -46,6 +46,7 @@ app.MapPost("/sendMessage", SendMessage)
     .WithOpenApi();
 
 app.MapGet("/getAllMessages", LoadMessages);
+app.MapGet("/getConversationPartners", GetConversationPartnerUsernames);
 app.MapGet("/getAllMessagesWithUser", LoadMessagesWithUser);
 
 app.MapGet("/longPolling", LongPollForMessages);
@@ -169,6 +170,48 @@ Message[] LoadMessagesWithUser([FromHeader] string token, [FromHeader] string ot
     }
 
     return messages.ToArray();
+}
+
+string[] GetConversationPartnerUsernames([FromHeader] string token)
+{
+    using var con = GetDbConnection();
+    User? user = VerifyToken(token);
+    if (user == null) return null!; // TODO
+
+    using var cmd = new NpgsqlCommand(
+        "SELECT " +
+        "CASE " +
+        "WHEN sender=$1 THEN recipient.name " +
+        "ELSE sender.name " +
+        "END AS username, " +
+        "CASE " +
+        "WHEN sender=$1 THEN recipient.id " +
+        "ELSE sender.id " +
+        "END AS oid " +
+        "FROM " +
+        "users.messages " +
+        "JOIN " +
+        "users.users sender ON messages.sender = sender.id " +
+        "JOIN " +
+        "users.users recipient ON messages.recipient = recipient.id " +
+        "WHERE " +
+        "sender=$1 OR " +
+        "recipient=$1 " +
+        "GROUP BY " +
+        "username, " +
+        "oid;",
+        con
+    );
+    cmd.Parameters.Add(new() {Value = user.Id});
+
+    List<string> conversationPartners = new();
+    var reader = cmd.ExecuteReader();
+    while (reader.Read())
+    {
+        conversationPartners.Add((string) reader["username"]);
+    }
+
+    return conversationPartners.ToArray();
 }
 
 string Login([FromHeader] string username, [FromHeader] string password)
