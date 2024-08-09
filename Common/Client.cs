@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Common;
 
@@ -37,7 +38,7 @@ public class Client(string ip)
         var response = await httpClient.SendAsync(message);
 
         if (!response.IsSuccessStatusCode) return false;
-        token = await response.Content.ReadAsStringAsync();
+        token = (await response.Content.ReadFromJsonAsync<TokenResult>(jsonSerializerOptions))!.Token;
         Username = username;
         return true;
     }
@@ -49,8 +50,7 @@ public class Client(string ip)
         message.Headers.Add("othersUsername", username);
         var response = await httpClient.SendAsync(message);
         if (!response.IsSuccessStatusCode) return null;
-        string content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<Message[]>(content, jsonSerializerOptions);
+        return await response.Content.ReadFromJsonAsync<Message[]>(jsonSerializerOptions);
     }
 
     public async Task<bool> SendMessage(string recipientName, string text)
@@ -70,9 +70,7 @@ public class Client(string ip)
         var response = await httpClient.SendAsync(message);
 
         if (!response.IsSuccessStatusCode) return null;
-
-        string content = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<string[]>(content, jsonSerializerOptions);
+        return await response.Content.ReadFromJsonAsync<string[]>(jsonSerializerOptions);
     }
 
     public void StartLongPollingConnection(Action<Message> messageReceived, CancellationToken cancellationToken)
@@ -86,8 +84,9 @@ public class Client(string ip)
                 var response = await httpClient.SendAsync(message, cancellationToken);
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
-                    string content = await response.Content.ReadAsStringAsync(cancellationToken);
-                    messageReceived.Invoke(JsonSerializer.Deserialize<Message>(content, jsonSerializerOptions)!);
+                    Message? msg = await response.Content.ReadFromJsonAsync<Message>(jsonSerializerOptions, cancellationToken);
+                    if(msg == null) continue;
+                    messageReceived.Invoke(msg);
                 }
             }
         }, cancellationToken);
