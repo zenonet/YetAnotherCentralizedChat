@@ -22,14 +22,17 @@ string username = Console.ReadLine()!;
 Console.Write("Password: ");
 string password = Console.ReadLine()!;
 
-bool isLoggedIn = await client.Login(username, password);
-if (isLoggedIn)
-    Console.WriteLine("You're now logged in!");
-else
+try
 {
-    Console.WriteLine("Uh, that didn't work...");
+    await client.Login(username, password);
+}
+catch (YaccException ye)
+{
+    Console.WriteLine(ye.Message);
     return;
 }
+
+Console.WriteLine("You're now logged in!");
 
 Console.WriteLine("Open a chat to another user: ");
 string? name = Console.ReadLine();
