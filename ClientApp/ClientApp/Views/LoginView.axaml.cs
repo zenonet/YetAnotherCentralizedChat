@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Net.Http;
-using System.Runtime.InteropServices.JavaScript;
 using System.Threading;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using ConsoleClient;
 
 namespace ClientApp.Views;
 
@@ -19,16 +19,17 @@ public partial class LoginView : UserControl
         Connect();
         try
         {
-            bool success = await App.Client!.Login(Username.Text!, Password.Text!);
+            await App.Client!.Login(Username.Text!, Password.Text!);
             // TODO manage errors
-            if (success)
-                Next();
-            else
-                ErrorMsg.Text = "An error occured while logging you in. Your credentials are probably invalid.";
+            Next();
         }
         catch (HttpRequestException)
         {
             ErrorMsg.Text = "Unable to reach servers.";
+        }
+        catch (YaccException ye)
+        {
+            ErrorMsg.Text = ye.Message;
         }
     }
 
@@ -37,17 +38,17 @@ public partial class LoginView : UserControl
         Connect();
         try
         {
-            bool success = await App.Client!.Register(Username.Text!, Password.Text!);
-            success &= await App.Client!.Login(Username.Text!, Password.Text!);
-
-            if (success)
-                Next();
-            else
-                ErrorMsg.Text = "An error occured. The username you selected is probably taken.";
+            await App.Client!.Register(Username.Text!, Password.Text!);
+            await App.Client!.Login(Username.Text!, Password.Text!);
+            Next();
         }
         catch (HttpRequestException)
         {
             ErrorMsg.Text = "Unable to reach servers.";
+        }
+        catch (YaccException ye)
+        {
+            ErrorMsg.Text = ye.Message;
         }
     }
 

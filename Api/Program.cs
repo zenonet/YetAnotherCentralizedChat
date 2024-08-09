@@ -2,13 +2,13 @@ using System.Buffers.Text;
 using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Api;
 using Common;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(
@@ -31,7 +31,6 @@ IConfigurationRoot configuration = new ConfigurationBuilder()
     .Build();
 
 var app = builder.Build();
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -73,6 +72,9 @@ return;
 
 IResult Register([FromHeader] string username, [FromHeader] string password)
 {
+    if (!RegexPatterns.UsernameValidation().IsMatch(username)) 
+        return Results.BadRequest("username has to be 3-20 characters long and must only contain alphanumeric characters (letters and digits) and underscores.");
+    
     using var con = GetDbConnection();
 
     byte[] salt = new byte[16];
@@ -242,7 +244,7 @@ IResult GetConversationPartnerUsernames([FromHeader] string token)
 
 IResult Login([FromHeader] string username, [FromHeader] string password)
 {
-    TokenResult token = VerifyUserAndCreateToken(username, password);
+    TokenResult? token = VerifyUserAndCreateToken(username, password);
     if(token != null)
         return Results.Ok(token);
     
@@ -278,7 +280,7 @@ User? VerifyToken(string token)
 
     // Check if the token is expired
     var expirationDate = DateTime.FromBinary(long.Parse(sections[3]));
-    if (expirationDate < DateTime.Now) return null;
+    if (expirationDate < DateTime.Now && expirationDate != DateTime.UnixEpoch) return null;
 
     return new()
     {
@@ -338,4 +340,10 @@ class User
 {
     public int Id { get; set; }
     public string Name { get; set; }
+}
+
+static partial class RegexPatterns
+{
+    [GeneratedRegex(@"^\w{3,20}$")]
+    internal static partial Regex UsernameValidation();
 }

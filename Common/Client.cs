@@ -20,27 +20,26 @@ public class Client(string ip)
     private string? token;
     public string Username { get; private set; }
 
-    public async Task<bool> Register(string username, string password)
+    public async Task Register(string username, string password)
     {
         HttpRequestMessage message = new(HttpMethod.Post, "register");
         message.Headers.Add("username", username);
         message.Headers.Add("password", password);
         Username = username;
         HttpResponseMessage response = await httpClient.SendAsync(message);
-        return response.IsSuccessStatusCode;
+        await MaybeThrowExceptionFromResponse(response);
     }
 
-    public async Task<bool> Login(string username, string password)
+    public async Task Login(string username, string password)
     {
         HttpRequestMessage message = new(HttpMethod.Post, "login");
         message.Headers.Add("username", username);
         message.Headers.Add("password", password);
         var response = await httpClient.SendAsync(message);
+        await MaybeThrowExceptionFromResponse(response);
 
-        if (!response.IsSuccessStatusCode) return false;
         token = (await response.Content.ReadFromJsonAsync<TokenResult>(jsonSerializerOptions))!.Token;
         Username = username;
-        return true;
     }
 
     public async Task<Message[]?> GetAllMessagesWithUser(string username)
@@ -49,18 +48,20 @@ public class Client(string ip)
         message.Headers.Add("token", token);
         message.Headers.Add("othersUsername", username);
         var response = await httpClient.SendAsync(message);
+        await MaybeThrowExceptionFromResponse(response);
+
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<Message[]>(jsonSerializerOptions);
     }
 
-    public async Task<bool> SendMessage(string recipientName, string text)
+    public async Task SendMessage(string recipientName, string text)
     {
         HttpRequestMessage message = new(HttpMethod.Post, "sendMessage");
         message.Headers.Add("token", token);
         message.Headers.Add("targetUser", recipientName);
         message.Headers.Add("text", text);
         var response = await httpClient.SendAsync(message);
-        return response.IsSuccessStatusCode;
+        await MaybeThrowExceptionFromResponse(response);
     }
 
     public async Task<string[]?> GetConversationPartners()
@@ -69,6 +70,7 @@ public class Client(string ip)
         message.Headers.Add("token", token);
         var response = await httpClient.SendAsync(message);
 
+        await MaybeThrowExceptionFromResponse(response);
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<string[]>(jsonSerializerOptions);
     }
@@ -85,10 +87,19 @@ public class Client(string ip)
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
                     Message? msg = await response.Content.ReadFromJsonAsync<Message>(jsonSerializerOptions, cancellationToken);
-                    if(msg == null) continue;
+                    if (msg == null) continue;
                     messageReceived.Invoke(msg);
                 }
             }
         }, cancellationToken);
     }
+
+    private async Task MaybeThrowExceptionFromResponse(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode) return;
+        if (response.StatusCode == HttpStatusCode.Unauthorized) throw new YaccException("Username or password is incorrect.");
+        throw new YaccException((await response.Content.ReadAsStringAsync()).Trim('"'));
+    }
 }
+
+public class YaccException(string msg) : Exception(msg);
