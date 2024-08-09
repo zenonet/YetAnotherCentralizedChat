@@ -1,8 +1,8 @@
-using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using ClientApp.ViewModels;
 
 namespace ClientApp.Views;
@@ -21,6 +21,14 @@ public partial class MainView : UserControl
             LoginView.IsVisible = false;
             Model.Conversations = new(await App.Client?.GetConversationPartners()! ?? []);
         };
+
+        App.MessageReceived += msg => Dispatcher.UIThread.Invoke(() =>
+        {
+            if (!Model.Conversations.Contains(msg.SenderName))
+            {
+                Model.Conversations.Add(msg.SenderName);
+            }
+        });
     }
 
     private async void ChatOpenButtonClicked(object? sender, RoutedEventArgs e)
