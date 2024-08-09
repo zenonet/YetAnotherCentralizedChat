@@ -36,7 +36,7 @@
             <Button IsDefault="True" DockPanel.Dock="Right" Command="{Binding SendMessageCommand}" Name="SendButton" Margin="10">Send</Button>
             <TextBox Text="{Binding DraftMessage}" Margin="10" assists:TextFieldAssist.Label="New message"/>
         </DockPanel>
-        <ScrollViewer>
+        <ScrollViewer Name="ScrollViewer">
             <ListBox ItemsSource="{Binding Messages}">
                 <ListBox.DataTemplates>
                     <DataTemplate DataType="common:Message"> 

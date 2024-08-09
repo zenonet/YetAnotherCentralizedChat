@@ -11,7 +11,7 @@ public partial class ChatViewModel : ViewModelBase
 {
     [ObservableProperty] private string chatName;
     [ObservableProperty] private ObservableCollection<Message> messages = new();
-    
+
     [ObservableProperty] private string draftMessage = "";
 
     public Action? CloseChat { get; set; }
@@ -22,7 +22,7 @@ public partial class ChatViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(DraftMessage)) return;
 
         await App.Client!.SendMessage(ChatName, DraftMessage);
-        Messages.Add(new()
+        AddMessage(new()
         {
             Content = DraftMessage,
             Timestamp = DateTime.Now,
@@ -30,5 +30,13 @@ public partial class ChatViewModel : ViewModelBase
             SenderName = App.Client.Username,
         });
         DraftMessage = "";
+    }
+
+    public event Action? MessagesChanged;
+
+    public void AddMessage(Message msg)
+    {
+        Messages.Add(msg);   
+        MessagesChanged?.Invoke();
     }
 }

@@ -54,6 +54,7 @@ public partial class LoginView : UserControl
 
     private void Next()
     {
+        LoginButton.IsDefault = false;
         App.Client!.StartLongPollingConnection(msg => { App.MessageReceived?.Invoke(msg); }, CancellationToken.None);
         App.LoggedIn?.Invoke();
     }

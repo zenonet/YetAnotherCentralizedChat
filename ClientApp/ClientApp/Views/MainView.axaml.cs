@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -9,6 +10,7 @@ namespace ClientApp.Views;
 public partial class MainView : UserControl
 {
     private MainViewModel Model => (MainViewModel) DataContext!;
+
     public MainView()
     {
         InitializeComponent();
@@ -26,31 +28,24 @@ public partial class MainView : UserControl
         await OpenChat(otherUserField.Text!);
     }
 
-    private async Task<ChatViewModel> GetChatModelForUser(string name)
+    private async Task OpenChat(string name)
     {
         ChatViewModel chat = new()
         {
             ChatName = name,
             Messages = new((await App.Client!.GetAllMessagesWithUser(name))!),
-            CloseChat = () =>
-            {
-                Model.CarouselPage = 1;
-            },
+            CloseChat = () => { Model.CarouselPage = 1; },
         };
+        
         App.MessageReceived += msg =>
         {
             if (msg.SenderName == name)
             {
-                chat.Messages.Add(msg);
+                chat.AddMessage(msg);
+                ChatView.ScrollViewer.ScrollToEnd();
             }
         };
-        return chat;
-    }
-
-    private async Task OpenChat(string user)
-    {
-        ChatViewModel model = await GetChatModelForUser(user);
-        Model.OpenedChat = model;
+        Model.OpenedChat = chat;
         Model.CarouselPage = 2;
     }
 

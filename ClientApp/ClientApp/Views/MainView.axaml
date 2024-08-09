@@ -33,7 +33,7 @@
                 </ItemsControl.DataTemplates>
             </ItemsControl>
         </DockPanel>
-        <views:ChatView DataContext="{Binding OpenedChat}" />
+        <views:ChatView DataContext="{Binding OpenedChat}" Name="ChatView" />
     </Carousel>
 
 </UserControl>
